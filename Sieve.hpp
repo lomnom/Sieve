@@ -15,10 +15,12 @@ This implements a segmented Sieve of Eratosthenes with concurrency.
 typedef unsigned long long int num;
 
 #define DEFAULT_THREADS 16 // Default number of extra threads to spawn to run the sieve
-#define DEFAULT_CHUNK_SIZE (4*10e6) // Size of interval allocated to each thread at a time
+// Size of interval allocated to each thread at a time
+// #define DEFAULT_CHUNK_SIZE (1*1e6) // 1 million
+#define DEFAULT_CHUNK_SIZE 100000 // Somehow the fastest
 
 /*
-Lemma 1: If a number N is composite, it has at least one prime factor <= to sqrt(N)
+Lemma 1: If a number N is composite, it has at least one prime factor <= sqrt(N)
 Proof: 
 1. Suppose we have a number N, and it is composite. 
 2. Thus, we have an array K of primes that when multiplied together result in N.
@@ -61,6 +63,7 @@ void sieve_worker( // Basically inheriting local vars from `parallel_sieve`
 		{
 			std::lock_guard<std::mutex> lock(task_taking_mutex);
 			if (frontier == upper_bound){
+				// std::cout << "All done! Thread #" << id << " exiting" << std::endl;
 				return; // No more tasks to take.
 			}
 
@@ -75,18 +78,21 @@ void sieve_worker( // Basically inheriting local vars from `parallel_sieve`
 			// By lemma #1, we need primes within [1, sqrt(end)] to have been calculated.
 			// i.e., progress >= sqrt(end) -> progress^2 > end
 			if (!( progress * progress > end )){ // NOTE: OVERFLOW WAITING TO HAPPEN!
+				// std::cout << "Not enough primes calculated. " << "progress=" << progress << " but end=" << end << std::endl;
 				continue; // We go back to waiting for more to process, as the latest task cannot be done yet.
 			}
 
 			frontier = end;
 		}
 
+		// std::cout << "Thread #" << id << " allocated [" << start << ", " << end << "]" << std::endl;
+
 		iterator_mutex.lock();
 		std::list<num>::iterator limit = end_iterator;
 		iterator_mutex.unlock();
 
 		// Now, our task is to find all primes in [start, end]
-		std::vector<bool>* is_prime = new std::vector<bool>(start - end + 1, true);
+		std::vector<bool>* is_prime = new std::vector<bool>(end - start + 1, true);
 		#define state(number) (*is_prime)[number - start] // Deal with starting at start.
 
 		// We only need to check against all primes where prime <= sqrt(end)
@@ -106,7 +112,7 @@ void sieve_worker( // Basically inheriting local vars from `parallel_sieve`
 				// We need to find the first value divisible by prime which is in [start, end]
 
 				// Rounded down to nearest chunk. Either below start, or at start.
-				checking = (start/prime)*prime; 
+				checking = (start/prime)*prime;
 				if (checking < start) { // Got rounded to chunk before
 					checking += prime;
 				}
@@ -114,7 +120,12 @@ void sieve_worker( // Basically inheriting local vars from `parallel_sieve`
 				// i.e. It is the first chunk which does not fall below start.
 
 				if (checking > end){ // No multiple exists within the range.
-					break;
+					if (it != limit){
+						it++;
+					} else {
+						break;
+					}
+					continue;
 				}
 				// If it passes this point, it is the first chunk which falls within [start, end]
 			}
@@ -187,6 +198,7 @@ void sieve_master( // Basically inheriting local vars from `parallel_sieve`
 
 			{
 				std::lock_guard<std::mutex> lock(iterator_mutex);
+				// std::cout << "\rProgressed to " << progress;
 				progress = right;
 				end_iterator = std::prev(primes.end(), 1);
 			}
@@ -199,13 +211,53 @@ void sieve_master( // Basically inheriting local vars from `parallel_sieve`
 	}
 }
 
+// Naive sieves for cross-checking and performance comparison
+// Container just has to support push_back
+// eg. naive_sieve< vector<num> >(100) 
+template <typename Container>
+Container naive_sieve(num upper_bound){
+	Container primes; // Result array
+	std::vector<bool> states(upper_bound, true);
+	#define state(number) states[(number)-1] // Deal with zero-indexing
+
+	num checking = 2;
+	while (checking <= upper_bound){
+		// At every iteration assume that all relevant primes have been tested against.
+		if (state(checking) == true){
+			primes.push_back(checking);
+
+			// Lemma 2.
+			for (num index = checking*checking; index <= upper_bound; index+=checking){
+				state(index) = false;
+			}
+		}
+		checking++;
+	}
+
+	return primes;
+	#undef state
+}
+
 std::list<num> parallel_sieve(num upper_bound, num threads = DEFAULT_THREADS, num chunk = DEFAULT_CHUNK_SIZE){
-	std::atomic<num> progress = 1; // Taken that all primes in [1, progress] are found.
+	// We need to first generate enough primes such that starting a new chunk, 
+	//   all values would only depend on values already calculated.
+	// Let N be the upper limit for primes needed (so we have all primes in [1, N]). N satisfies
+	// ->  N >= floor(sqrt(N + chunk))
+	// As for a chunk which ends at N+chunk, we need all primes <= sqrt(N+chunk)
+	// We use N = floor(2 * sqrt(chunk)) to satisfy this.
+	// List is used so multiple threads can read while appends happen.
+	std::atomic<num> progress = (num)( floor(2 * sqrt(chunk)) ); // Always taken that all primes in [1, progress] are found.
+
+	if (progress >= upper_bound){
+		// std::cout << "Too small. pre=" << progress << " Just using normal sieve." << std::endl;
+		return naive_sieve< std::list<num> >(progress);
+	}
+
+	std::list<num> primes = naive_sieve< std::list<num> >(progress); 
 	
 	std::mutex task_taking_mutex; // To be locked while accepting a task (reading/writing frontier)
 	num frontier = progress; // The largest number which is not pending to be solved by any thread.
-
-	std::list<num> primes; // List is used so multiple threads can read while appends happen.
+	// std::cout << "Initial=" << progress << std::endl;
 
 	// Guaranteed to point to the biggest prime less than `progress`
 	std::list<num>::iterator end_iterator = std::prev(primes.end(), 1); 
@@ -245,28 +297,4 @@ std::list<num> parallel_sieve(num upper_bound, num threads = DEFAULT_THREADS, nu
 	}
 
 	return primes;
-}
-
-// Naive sieves for cross-checking and performance comparison
-std::vector<num> naive_sieve(num upper_bound){
-	std::vector<num> primes; // Result array
-	std::vector<bool> states(upper_bound, true);
-	#define state(number) states[(number)-1] // Deal with zero-indexing
-
-	num checking = 2;
-	while (checking <= upper_bound){
-		// At every iteration assume that all relevant primes have been tested against.
-		if (state(checking) == true){
-			primes.push_back(checking);
-
-			// Lemma 2.
-			for (num index = checking*checking; index <= upper_bound; index+=checking){
-				state(index) = false;
-			}
-		}
-		checking++;
-	}
-
-	return primes;
-	#undef state
 }
