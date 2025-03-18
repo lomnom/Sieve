@@ -1,5 +1,7 @@
 /*
 This implements a segmented Sieve of Eratosthenes with concurrency.
+Due to integer overflows, this algorithm can currently only generate up to a limit of sqrt(2^64 - 1).
+Just to be safe, avoid setting limits above 4.25 billion = 4250000000.
 */
 
 #include <thread>
@@ -102,7 +104,7 @@ void sieve_worker( // Basically inheriting local vars from `parallel_sieve`
 			num prime = *it;
 
 			// Figure out where to start checking from.
-			num checking = prime * prime;
+			num checking = prime * prime; // NOTE: OVERFLOW WAITING TO HAPPEN
 			if (checking > end){
 				break; // All subsequent primes are not relevant too.
 			} else if (start <= checking && checking <= end){
@@ -227,7 +229,7 @@ Container naive_sieve(num upper_bound){
 			primes.push_back(checking);
 
 			// Lemma 2.
-			for (num index = checking*checking; index <= upper_bound; index+=checking){
+			for (num index = checking*checking; index <= upper_bound; index+=checking){ // NOTE: OVERFLOW WAITING TO HAPPEN
 				state(index) = false;
 			}
 		}
