@@ -5,10 +5,22 @@ This implements a segmented Sieve of Eratosthenes with concurrency.
 #include <thread>
 #include <atomic>
 #include <vector>
+#include <bitset>
 typedef unsigned long long int num;
 
 #define DEFAULT_THREADS 16 // Default number of extra threads to spawn to run the sieve
-#define DEFAULT_CHUNK_SIZE (500*10e6) // Size of interval allocated to each thread at a time
+#define DEFAULT_CHUNK_SIZE (4*10e6) // Size of interval allocated to each thread at a time
+
+/*
+Lemma 1: If a number N is composite, it has at least one prime factor less than or equal to sqrt(N)
+Proof: 
+1. Suppose we have a number N, and it is composite. 
+2. Thus, we have an array K of primes that when multiplied together result in N.
+3. Assume that every prime factor is more than sqrt(n). Notice that since N is a 
+     composite number, the list will contain at least two factors, both > sqrt(N).
+4. Thus, the product of all factors in the list is more than N.
+5. By contradiction, this proves lemma 1.
+*/
 
 /*
 Algorithm description:
@@ -39,13 +51,43 @@ POSSIBLE OPTIMISATION: Only store the array for odd numbers & only test odd numb
 */
 
 void sieve_worker(num upper_bound){
-  return {1,2};
+	return;
 }
 
 std::vector<num> sieve_master(num upper_bound){
-  return {1,2};
+	return {1,2};
 }
 
-std::vector<num> sieve(num upper_bound){
-  return {1,2};
+std::vector<num> parallel_sieve(num upper_bound){
+	return {1,2};
+}
+
+// Naive sieves for cross-checking and performance comparison
+std::vector<num> naive_sieve(num upper_bound){
+	std::vector<num> primes; // Result array
+	std::vector<bool> states(upper_bound, true);
+	#define state(number) states[(number)-1] // Deal with zero-indexing
+
+	num checking = 2;
+	while (checking <= upper_bound){
+		// At every iteration assume that all relevant primes have been tested against.
+		if (state(checking) == true){
+			primes.push_back(checking);
+
+			// From lemma 1, we only need to check all primes less than or equal to sqrt(n)
+			//   to determine if it is prime.
+			// By starting at checking^2, if N is exactly checking^2, we do check N.
+			//   i.e. if N = checking^2 -> checking = sqrt(n)
+			// If any N is larger than checking^2, it will also be checked.
+			//   i.e. N > checking^2 -> checking < sqrt(n)
+			// Thus for every number, the requirements for lemma 1 are satisfied.
+			for (num index = checking*checking; index <= upper_bound; index+=checking){
+				state(index) = false;
+			}
+		}
+		checking++;
+	}
+
+	return primes;
+	#undef state
 }
