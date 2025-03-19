@@ -4,6 +4,7 @@ Due to integer overflows, this algorithm can currently only generate up to a lim
 Just to be safe, avoid setting limits above 4.25 billion = 4250000000.
 */
 
+#include <cmath>
 #include <thread>
 #include <mutex>
 #include <atomic>
