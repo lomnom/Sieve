@@ -252,7 +252,7 @@ std::list<num> parallel_sieve(num upper_bound, num threads = DEFAULT_THREADS, nu
 
 	if (progress >= upper_bound){
 		// std::cout << "Too small. pre=" << progress << " Just using normal sieve." << std::endl;
-		return naive_sieve< std::list<num> >(progress);
+		return naive_sieve< std::list<num> >(upper_bound);
 	}
 
 	std::list<num> primes = naive_sieve< std::list<num> >(progress); 

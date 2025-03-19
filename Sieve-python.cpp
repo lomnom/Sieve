@@ -1,4 +1,5 @@
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 #include "Sieve.hpp"
 
 std::list<num> sieve_interface(num upper_bound){
@@ -8,7 +9,7 @@ std::list<num> sieve_interface(num upper_bound){
     return parallel_sieve(upper_bound);
 }
 
-PYBIND11_MODULE(conc_sieve, module)
+PYBIND11_MODULE(sieve, module)
 {
     module.doc() = "Implements a parallel sieve of eratosthenes in sieve(upper_bound)."
                    "Finds all primes in [1, upper_bound]."; // optional module docstring
