@@ -5,6 +5,7 @@ Just to be safe, avoid setting limits above 4.25 billion = 4250000000.
 */
 
 #include <thread>
+#include <mutex>
 #include <atomic>
 #include <vector>
 // #include <bitset>
