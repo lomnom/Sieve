@@ -10,4 +10,4 @@ pip3 install pybind11
 # Long ahh command from https://pybind11.readthedocs.io/en/stable/basics.html
 g++ -O3 -Wall -shared -std=c++17 -fPIC $(python3-config --includes) $(python3 -m pybind11 --includes) Sieve-python.cpp -o sieve$(python3-config --extension-suffix)
 ```
-Any c++ compiler should work. Now, the module is contained within the `sieve` folder. You can import it as `import sieve`.
+Any c++ compiler should work. You can import it as `import sieve` from python after compilation.
