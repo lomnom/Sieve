@@ -1,5 +1,5 @@
 # Sieve, an effecient prime generator
-This project implements a concurrent segmented sieve of erathosthenes in c++. It also implements a python interface for it.
+This project implements a concurrent segmented sieve of erathosthenes in c++. It also implements a python interface for it. The c++ implementation takes 2.9s to find all primes up to 1000000000 on an intel i7.
 
 ## Building
 The c++ implementation can directly be used by including the `Sieve.hpp` header file (c++17).
@@ -16,7 +16,7 @@ Any c++ compiler should work g++. You can import it as `import sieve` from pytho
 ## Demos
 The c++ demo is relatively easy to build.
 ```bash
-clang++ -std="c++17" -Wall Demo.cpp
+clang++ -std="c++17" -O3 -Wall Demo.cpp
 ./a.out
 ```
 All c++ compilers should work in place of clang.
