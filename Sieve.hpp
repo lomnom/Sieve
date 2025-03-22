@@ -260,7 +260,7 @@ std::list<num> parallel_sieve(num upper_bound, num threads = DEFAULT_THREADS, nu
 	std::list<num> primes = naive_sieve< std::list<num> >(progress); 
 	
 	std::mutex task_taking_mutex; // To be locked while accepting a task (reading/writing frontier)
-	num frontier = progress; // The largest number which is not pending to be solved by any thread.
+	num frontier = progress; // The largest number which is pending to be solved by a thread i.e. is allocated in a task
 	// std::cout << "Initial=" << progress << std::endl;
 
 	// Guaranteed to point to the biggest prime less than `progress`
