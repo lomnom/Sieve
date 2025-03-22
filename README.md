@@ -11,7 +11,7 @@ pip3 install pybind11
 # Long ahh command from https://pybind11.readthedocs.io/en/stable/basics.html
 g++ -O3 -Wall -shared -std=c++17 -fPIC $(python3-config --includes) $(python3 -m pybind11 --includes) Sieve-python.cpp -o sieve$(python3-config --extension-suffix)
 ```
-Any c++ compiler should work g++. You can import it as `import sieve` from python after compilation.
+Any c++ compiler should work in place of g++. You can import it as `import sieve` from python after compilation.
 
 ## Demos
 The c++ demo is relatively easy to build.
