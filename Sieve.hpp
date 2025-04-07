@@ -182,7 +182,6 @@ void sieve_master( // Basically inheriting local vars from `parallel_sieve`
 		}
 		result_mutex.unlock();
 
-		// Unfortunately we still have to lock the primes array while merging.
 		// While the frontmost chunk in queue is continuous if merged
 		while (pending_merge.begin()->first.first == progress+1){ 
 			auto it = pending_merge.begin(); // it->{{left, right}, pointer}
